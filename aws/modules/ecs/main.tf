@@ -16,19 +16,20 @@ resource "aws_iam_role" "ecs_execution_role" {
   })
 }
 
-resource "aws_iam_policy" "ecs_execution_policy" {
-  name = "${var.environment}-${var.service_name}-ecs-execution-policy"
-  description = "ECS execution role policy to pull images from ECR and send logs to CloudWatch"
+resource "aws_iam_policy" "ecs_execution_role_policy" {
+  name = "${var.environment}-${var.service_name}-ecs-execution-role-policy"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
+        Effect   = "Allow"
+        Action   = [
           "ecr:GetAuthorizationToken",
-          "ecr:BatchGetImage",
           "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
@@ -40,7 +41,7 @@ resource "aws_iam_policy" "ecs_execution_policy" {
 
 resource "aws_iam_role_policy_attachment" "ecs_execution_role_attachment" {
   role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = aws_iam_policy.ecs_execution_policy.arn
+  policy_arn = aws_iam_policy.ecs_execution_role_policy.arn
 }
 
 // ECS Task Role
@@ -66,16 +67,28 @@ resource "aws_iam_policy" "ecs_task_policy" {
   description = "ECS task role policy to access S3, DynamoDB, etc."
 
   policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "dynamodb:Query",
-          "sns:Publish"
-        ]
-        Resource = "*"
+        Sid       = "AllowECRPull",
+        Effect    = "Allow",
+        Action    = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:BatchGetImage"
+        ],
+        Resource  = "*"
+      },
+      {
+        Sid       = "AllowLogs",
+        Effect    = "Allow",
+        Action    = [
+          "logs:*"
+        ],
+        Resource  = "*"
       }
     ]
   })
@@ -99,6 +112,10 @@ resource "aws_ecr_repository" "main" {
 resource "aws_ecs_cluster" "main" {
   name = "${var.environment}-${var.service_name}-cluster"
 }
+
+resource "aws_cloudwatch_log_group" "main" {
+  name = "/ecs/${var.environment}-${var.service_name}"
+} 
 
 // ECS Task Definition
 resource "aws_ecs_task_definition" "main" {
@@ -124,6 +141,14 @@ resource "aws_ecs_task_definition" "main" {
           protocol      = "tcp"
         }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.main.name
+          awslogs-region        = "ap-northeast-1"
+          awslogs-stream-prefix = "nginx"
+        }
+      }
     }
   ])
 }

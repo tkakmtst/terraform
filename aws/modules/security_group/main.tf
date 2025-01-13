@@ -27,6 +27,13 @@ resource "aws_security_group" "ecs_sg" {
     security_groups = [aws_security_group.pub_alb_sg.id]
   }
 
+  egress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+  }
+
   tags = {
     Name = "${var.environment}-${var.service_name}-ecs-sg"
   }
