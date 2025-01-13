@@ -1,26 +1,6 @@
-variable "cidr_block" {
-  description = "CIDR block for the VPC"
-  type        = string
-}
-
 variable "environment" {
-  description = "Environment name"
+  description = "The environment name (e.g. stg, prd)"
   type        = string
-}
-
-variable "public_subnet_cidr_blocks" {
-  description = "CIDR blocks for the public subnets"
-  type        = list(string)
-}
-
-variable "private_subnet_cidr_blocks" {
-  description = "CIDR blocks for the private subnets"
-  type        = list(string)
-}
-
-variable "availability_zones" {
-  description = "List of availability zones"
-  type        = list(string)
 }
 
 variable "service_name" {
@@ -46,17 +26,29 @@ variable "container_image" {
 variable "container_cpu" {
   description = "CPU units for the container"
   type        = number
-  default     = 256
 }
 
 variable "container_memory" {
   description = "Memory (MiB) for the container"
   type        = number
-  default     = 512
 }
 
 variable "desired_count" {
   description = "Number of desired tasks for the ECS service"
   type        = number
-  default     = 1
+}
+
+variable "private_subnet_ids" {
+  description = "List of subnets for the ECS service"
+  type        = list(string)
+}
+
+variable "security_group_id" {
+  description = "Security group id for the ECS service"
+  type        = string
+}
+
+variable "alb_target_group_arn" {
+  description = "ALB target gruop arn for the ECS service"
+  type        = string
 }
