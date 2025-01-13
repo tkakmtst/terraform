@@ -121,6 +121,7 @@ resource "aws_ecs_task_definition" "main" {
         {
           containerPort = 80
           hostPort      = 80
+          protocol      = "tcp"
         }
       ]
     }

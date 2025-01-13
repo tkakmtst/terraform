@@ -9,6 +9,10 @@ resource "aws_security_group" "pub_alb_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "${var.environment}-${var.service_name}-pub-alb-sg"
+  }
 }
 
 resource "aws_security_group" "ecs_sg" {
@@ -22,6 +26,10 @@ resource "aws_security_group" "ecs_sg" {
     protocol    = "tcp"
     security_groups = [aws_security_group.pub_alb_sg.id]
   }
+
+  tags = {
+    Name = "${var.environment}-${var.service_name}-ecs-sg"
+  }
 }
 
 resource "aws_security_group" "rds_sg" {
@@ -34,5 +42,9 @@ resource "aws_security_group" "rds_sg" {
     to_port     = 3306
     protocol    = "tcp"
     security_groups = [aws_security_group.ecs_sg.id]
+  }
+
+  tags = {
+    Name = "${var.environment}-${var.service_name}-rds-sg"
   }
 }
