@@ -10,3 +10,6 @@ container_image            = "public.ecr.aws/nginx/nginx:latest"
 container_cpu              = 256
 container_memory           = 512
 desired_count              = 1
+domain_name = "example.com"
+api_subdomain_name = "api.example.com"
+acm_certificate_arn = "arn:aws:acm:ap-northeast-1:account_id:certificate/hoge"

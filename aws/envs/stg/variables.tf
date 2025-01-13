@@ -60,3 +60,18 @@ variable "desired_count" {
   type        = number
   default     = 1
 }
+
+variable "domain_name" {
+  description = "The domain name of the existing Route 53 Hosted Zone"
+  type        = string
+}
+
+variable "api_subdomain_name" {
+  description = "The subdomain for the API (e.g., api.example.com)"
+  type        = string
+}
+
+variable "acm_certificate_arn" {
+  description = "The ACM certificate Arn"
+  type        = string
+}

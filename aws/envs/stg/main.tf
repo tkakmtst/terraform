@@ -21,6 +21,15 @@ module "alb" {
   security_group_id = module.security_group.pub_alb_sg_id
   public_subnet_ids = module.vpc.public_subnet_ids 
   vpc_id = module.vpc.vpc_id
+  acm_certificate_arn = var.acm_certificate_arn
+}
+
+module "route53" {
+  source = "../../modules/route53"
+  domain_name = var.domain_name
+  api_subdomain_name = var.api_subdomain_name
+  api_target_dns = module.alb.alb_dns_name
+  api_target_zone_id = module.alb.alb_zone_id
 }
 
 module "ecs" {
