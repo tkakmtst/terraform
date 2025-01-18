@@ -61,18 +61,9 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_eip" "nat" {
-  domain = "vpc"
-}
-
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
-
-  depends_on = [aws_internet_gateway.main]
-  tags = {
-    Name = "${var.environment}-nat-gateway"
-  }
+resource "aws_main_route_table_association" "main" {
+  vpc_id         = aws_vpc.main.id
+  route_table_id = aws_route_table.public.id
 }
 
 resource "aws_route_table" "private" {
@@ -93,3 +84,19 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }
+
+resource "aws_eip" "nat" {
+  domain = "vpc"
+}
+
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public[0].id
+
+  depends_on = [aws_internet_gateway.main]
+  tags = {
+    Name = "${var.environment}-nat-gateway"
+  }
+}
+
+
