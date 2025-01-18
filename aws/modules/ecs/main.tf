@@ -1,7 +1,7 @@
-// ECS Execution Role
-resource "aws_iam_role" "ecs_execution_role" {
-  name = "${var.environment}-${var.service_name}-ecs-execution-role"
-
+// ECS Task Execution Role
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "${var.environment}-${var.service_name}-ecs-task-execution-role"
+  
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -16,32 +16,10 @@ resource "aws_iam_role" "ecs_execution_role" {
   })
 }
 
-resource "aws_iam_policy" "ecs_execution_role_policy" {
-  name = "${var.environment}-${var.service_name}-ecs-execution-role-policy"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_role_attachment" {
-  role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = aws_iam_policy.ecs_execution_role_policy.arn
+// ECS Task Execution Role Policy Attachment
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role" {
+  role       =  aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
 // ECS Task Role
@@ -62,6 +40,7 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 }
 
+// ECS Task Role Policy
 resource "aws_iam_policy" "ecs_task_policy" {
   name = "${var.environment}-${var.service_name}-ecs-task-policy"
   description = "ECS task role policy to access S3, DynamoDB, etc."
@@ -70,30 +49,18 @@ resource "aws_iam_policy" "ecs_task_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid       = "AllowECRPull",
         Effect    = "Allow",
         Action    = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages",
-          "ecr:BatchGetImage"
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
         ],
-        Resource  = "*"
-      },
-      {
-        Sid       = "AllowLogs",
-        Effect    = "Allow",
-        Action    = [
-          "logs:*"
-        ],
-        Resource  = "*"
+        Resource  = "${aws_cloudwatch_log_group.ecs.arn}"
       }
     ]
   })
 }
 
+// ECS Task Role Policy Attachment
 resource "aws_iam_role_policy_attachment" "ecs_task_role_attachment" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.ecs_task_policy.arn
@@ -113,7 +80,8 @@ resource "aws_ecs_cluster" "main" {
   name = "${var.environment}-${var.service_name}-cluster"
 }
 
-resource "aws_cloudwatch_log_group" "main" {
+// CloudWatch Logs
+resource "aws_cloudwatch_log_group" "ecs" {
   name = "/ecs/${var.environment}-${var.service_name}"
 } 
 
@@ -124,7 +92,7 @@ resource "aws_ecs_task_definition" "main" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.task_cpu
   memory                   = var.task_memory
-  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
@@ -141,10 +109,16 @@ resource "aws_ecs_task_definition" "main" {
           protocol      = "tcp"
         }
       ]
+      environment = [
+        {
+          name  = "ENV"
+          value = "${var.environment}"
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.main.name
+          awslogs-group         = aws_cloudwatch_log_group.ecs.name
           awslogs-region        = "ap-northeast-1"
           awslogs-stream-prefix = "nginx"
         }
